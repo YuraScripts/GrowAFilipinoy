@@ -29,7 +29,7 @@ local OrionLib = {
 local Icons = {}
 
 local Success, Response = pcall(function()
-	Icons = HttpService:JSONDecode(game:HttpGetAsync("https://raw.githubusercontent.com/YuraScripts/Grow-A-Pinoy/refs/heads/main/GS.ico")).icons
+	Icons = HttpService:JSONDecode(game:HttpGetAsync("https://raw.githubusercontent.com/evoincorp/lucideblox/master/src/modules/util/icons.json")).icons
 end)
 
 if not Success then
@@ -1319,158 +1319,128 @@ function OrionLib:MakeWindow(WindowConfig)
 	end
 	return Dropdown
 end
+			function ElementFunction:AddBind(BindConfig)
+				BindConfig.Name = BindConfig.Name or "Bind"
+				BindConfig.Default = BindConfig.Default or Enum.KeyCode.Unknown
+				BindConfig.Hold = BindConfig.Hold or false
+				BindConfig.Callback = BindConfig.Callback or function() end
+				BindConfig.Flag = BindConfig.Flag or nil
+				BindConfig.Save = BindConfig.Save or false
 
-    local function CreateCheckbox(parent)
-        local CheckboxFrame = AddThemeObject(SetProps(SetChildren(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 3), {
-            MakeElement("Corner", 0, 3),
-            AddThemeObject(MakeElement("Stroke"), "Stroke")
-        }), {
-            Parent = parent,
-            Size = UDim2.new(0, 16, 0, 16),
-            Position = UDim2.new(1, -24, 0.5, -8),
-            BackgroundTransparency = 1
-        }), "Second")
+				local Bind = {Value, Binding = false, Type = "Bind", Save = BindConfig.Save}
+				local Holding = false
 
-        local Checkmark = AddThemeObject(SetProps(MakeElement("Image", "rbxassetid://7072718301"), {
-            Size = UDim2.new(0, 12, 0, 12),
-            Position = UDim2.new(0, 2, 0, 2),
-            Parent = CheckboxFrame,
-            ImageTransparency = 1
-        }), "Text")
+				local Click = SetProps(MakeElement("Button"), {
+					Size = UDim2.new(1, 0, 1, 0)
+				})
 
-        return CheckboxFrame, Checkmark
-    end
+				local BindBox = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 4), {
+					Size = UDim2.new(0, 24, 0, 24),
+					Position = UDim2.new(1, -12, 0.5, 0),
+					AnchorPoint = Vector2.new(1, 0.5)
+				}), {
+					AddThemeObject(MakeElement("Stroke"), "Stroke"),
+					AddThemeObject(SetProps(MakeElement("Label", BindConfig.Name, 14), {
+						Size = UDim2.new(1, 0, 1, 0),
+						Font = Enum.Font.GothamBold,
+						TextXAlignment = Enum.TextXAlignment.Center,
+						Name = "Value"
+					}), "Text")
+				}), "Main")
 
-    local function AddOptions(Options)
-        for _, Option in pairs(Options) do
-            local OptionBtn = AddThemeObject(SetProps(SetChildren(MakeElement("Button", Color3.fromRGB(40, 40, 40)), {
-                MakeElement("Corner", 0, 6),
-                AddThemeObject(SetProps(MakeElement("Label", Option, 13, 0.4), {
-                    Position = UDim2.new(0, 8, 0, 0),
-                    Size = UDim2.new(1, -32, 1, 0),
-                    Name = "Title"
-                }), "Text")
-            }), {
-                Parent = DropdownList,
-                Size = UDim2.new(1, 0, 0, 28),
-                BackgroundTransparency = 0,  -- Make sure button is visible
-                ClipsDescendants = true
-            }), "Divider")
+				local BindFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
+					Size = UDim2.new(1, 0, 0, 38),
+					Parent = ItemParent
+				}), {
+					AddThemeObject(SetProps(MakeElement("Label", BindConfig.Name, 15), {
+						Size = UDim2.new(1, -12, 1, 0),
+						Position = UDim2.new(0, 12, 0, 0),
+						Font = Enum.Font.GothamBold,
+						Name = "Content"
+					}), "Text"),
+					AddThemeObject(MakeElement("Stroke"), "Stroke"),
+					BindBox,
+					Click
+				}), "Second")
 
-            local CheckboxFrame, Checkmark = CreateCheckbox(OptionBtn)
-            
-            AddConnection(OptionBtn.MouseButton1Click, function()
-                MultiDropdown:Toggle(Option)
-                SaveCfg(game.GameId)
-            end)
+				AddConnection(BindBox.Value:GetPropertyChangedSignal("Text"), function()
+					--BindBox.Size = UDim2.new(0, BindBox.Value.TextBounds.X + 16, 0, 24)
+					TweenService:Create(BindBox, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(0, BindBox.Value.TextBounds.X + 16, 0, 24)}):Play()
+				end)
 
-            MultiDropdown.Buttons[Option] = OptionBtn
-            MultiDropdown.Checkboxes[Option] = {Frame = CheckboxFrame, Mark = Checkmark}
-        end
-    end
+				AddConnection(Click.InputEnded, function(Input)
+					if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+						if Bind.Binding then return end
+						Bind.Binding = true
+						BindBox.Value.Text = ""
+					end
+				end)
 
-    function MultiDropdown:Refresh(Options, Delete)
-        if Delete then
-            for _,v in pairs(MultiDropdown.Buttons) do
-                v:Destroy()
-            end    
-            table.clear(MultiDropdown.Options)
-            table.clear(MultiDropdown.Buttons)
-            table.clear(MultiDropdown.Checkboxes)
-            table.clear(MultiDropdown.Value)
-        end
-        MultiDropdown.Options = Options
-        AddOptions(MultiDropdown.Options)
-        UpdateSelectedText()
-    end
+				AddConnection(UserInputService.InputBegan, function(Input)
+					if UserInputService:GetFocusedTextBox() then return end
+					if (Input.KeyCode.Name == Bind.Value or Input.UserInputType.Name == Bind.Value) and not Bind.Binding then
+						if BindConfig.Hold then
+							Holding = true
+							BindConfig.Callback(Holding)
+						else
+							BindConfig.Callback()
+						end
+					elseif Bind.Binding then
+						local Key
+						pcall(function()
+							if not CheckKey(BlacklistedKeys, Input.KeyCode) then
+								Key = Input.KeyCode
+							end
+						end)
+						pcall(function()
+							if CheckKey(WhitelistedMouse, Input.UserInputType) and not Key then
+								Key = Input.UserInputType
+							end
+						end)
+						Key = Key or Bind.Value
+						Bind:Set(Key)
+						SaveCfg(game.GameId)
+					end
+				end)
 
-    function MultiDropdown:Toggle(Value)
-        if not table.find(MultiDropdown.Options, Value) then
-            return
-        end
+				AddConnection(UserInputService.InputEnded, function(Input)
+					if Input.KeyCode.Name == Bind.Value or Input.UserInputType.Name == Bind.Value then
+						if BindConfig.Hold and Holding then
+							Holding = false
+							BindConfig.Callback(Holding)
+						end
+					end
+				end)
 
-        local index = table.find(MultiDropdown.Value, Value)
-        if index then
-            -- Remove from selection
-            table.remove(MultiDropdown.Value, index)
-            -- Update checkbox appearance
-            TweenService:Create(MultiDropdown.Checkboxes[Value].Frame, TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 1}):Play()
-            TweenService:Create(MultiDropdown.Checkboxes[Value].Mark, TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageTransparency = 1}):Play()
-        else
-            -- Check if we've reached max selections
-            if MultiDropdown.Max and #MultiDropdown.Value >= MultiDropdown.Max then
-                return
-            end
-            -- Add to selection
-            table.insert(MultiDropdown.Value, Value)
-            -- Update checkbox appearance
-            TweenService:Create(MultiDropdown.Checkboxes[Value].Frame, TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0}):Play()
-            TweenService:Create(MultiDropdown.Checkboxes[Value].Mark, TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageTransparency = 0}):Play()
-        end
+				AddConnection(Click.MouseEnter, function()
+					TweenService:Create(BindFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 3)}):Play()
+				end)
 
-        UpdateSelectedText()
-        return DropdownConfig.Callback(MultiDropdown.Value)
-    end
+				AddConnection(Click.MouseLeave, function()
+					TweenService:Create(BindFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = OrionLib.Themes[OrionLib.SelectedTheme].Second}):Play()
+				end)
 
-    function MultiDropdown:Set(Values)
-        -- Clear current selections
-        table.clear(MultiDropdown.Value)
-        
-        -- Reset all checkboxes
-        for _, checkbox in pairs(MultiDropdown.Checkboxes) do
-            TweenService:Create(checkbox.Frame, TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 1}):Play()
-            TweenService:Create(checkbox.Mark, TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageTransparency = 1}):Play()
-        end
+				AddConnection(Click.MouseButton1Up, function()
+					TweenService:Create(BindFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 3)}):Play()
+				end)
 
-        -- Set new selections
-        for _, Value in pairs(Values) do
-            if table.find(MultiDropdown.Options, Value) then
-                table.insert(MultiDropdown.Value, Value)
-                if MultiDropdown.Checkboxes[Value] then
-                    TweenService:Create(MultiDropdown.Checkboxes[Value].Frame, TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0}):Play()
-                    TweenService:Create(MultiDropdown.Checkboxes[Value].Mark, TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageTransparency = 0}):Play()
-                end
-            end
-        end
+				AddConnection(Click.MouseButton1Down, function()
+					TweenService:Create(BindFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 6, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 6, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 6)}):Play()
+				end)
 
-        UpdateSelectedText()
-        return DropdownConfig.Callback(MultiDropdown.Value)
-    end
+				function Bind:Set(Key)
+					Bind.Binding = false
+					Bind.Value = Key or Bind.Value
+					Bind.Value = Bind.Value.Name or Bind.Value
+					BindBox.Value.Text = Bind.Value
+				end
 
-    function MultiDropdown:Clear()
-        self:Set({})
-    end
-
-    function MultiDropdown:GetSelected()
-        return MultiDropdown.Value
-    end
-
-    function MultiDropdown:SelectAll()
-        self:Set(MultiDropdown.Options)
-    end
-
-    AddConnection(Click.MouseButton1Click, function()
-        MultiDropdown.Toggled = not MultiDropdown.Toggled
-        DropdownFrame.F.Line.Visible = MultiDropdown.Toggled
-        DropdownContainer.Visible = MultiDropdown.Toggled  -- Show/hide container
-        
-        TweenService:Create(DropdownFrame.F.Ico, TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Rotation = MultiDropdown.Toggled and 180 or 0}):Play()
-        
-        if #MultiDropdown.Options > MaxElements then
-            TweenService:Create(DropdownFrame, TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = MultiDropdown.Toggled and UDim2.new(1, 0, 0, 38 + (MaxElements * 28)) or UDim2.new(1, 0, 0, 38)}):Play()
-        else
-            TweenService:Create(DropdownFrame, TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = MultiDropdown.Toggled and UDim2.new(1, 0, 0, DropdownList.AbsoluteContentSize.Y + 38) or UDim2.new(1, 0, 0, 38)}):Play()
-        end
-    end)
-
-    MultiDropdown:Refresh(MultiDropdown.Options, false)
-    MultiDropdown:Set(MultiDropdown.Value)
-    if DropdownConfig.Flag then
-        OrionLib.Flags[DropdownConfig.Flag] = MultiDropdown
-    end
-    return MultiDropdown
-end
-
+				Bind:Set(BindConfig.Default)
+				if BindConfig.Flag then				
+					OrionLib.Flags[BindConfig.Flag] = Bind
+				end
+				return Bind
+			end  
 
 function ElementFunction:AddTextbox(TextboxConfig)
 				TextboxConfig = TextboxConfig or {}
