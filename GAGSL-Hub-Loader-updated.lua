@@ -1,4 +1,4 @@
-local url = "https://raw.githubusercontent.com/YuraScripts/Grow-A-Pinoy/refs/heads/main/GAGSL-Hub-Loader.v1.lua"
+local url = "https://raw.githubusercontent.com/YuraScripts/Grow-A-Pinoy/refs/heads/main/GenzuraHub.Loader-v1.lua"
 local success, response = pcall(function()
     return loadstring(game:HttpGet(url, true))()
 end)
