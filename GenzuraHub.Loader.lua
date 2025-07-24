@@ -7,3 +7,6 @@ if not success then
 else
     print("✅ Script executed successfully!")
 end
+
+
+-- Join Discord! https://discord.gg/gZsQJnfbEp
